@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-industrialization
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Industrialization
@@ -22,6 +22,8 @@ To convert experimental code (notebooks/scripts) into a high-quality, distributa
 - **Context**: Moving from `notebooks/` to `src/`.
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. Packaging Structure (`src` Layout)
 
@@ -97,28 +99,26 @@ Decouple settings from code using **OmegaConf** (Parsing) and **Pydantic** (Vali
        use_gpu: bool = False
    ```
 
-1. **Parse & Validate (OmegaConf)**:
-   - Load YAML, merge with CLI args, and validate against the schema.
+1. **Parse & Validate (OmegaConf)**: Load YAML, merge dotlist CLI values if your application supports them, then resolve and validate.
 
    ```python
    import omegaconf
 
-   # 1. Load YAML
    conf = omegaconf.OmegaConf.load("config.yaml")
-   # 2. Merge with CLI (optional)
    cli_conf = omegaconf.OmegaConf.from_cli()
    merged = omegaconf.OmegaConf.merge(conf, cli_conf)
-   # 3. Validate -> Returns a validated Pydantic object
-   cfg: TrainingConfig = TrainingConfig(**omegaconf.OmegaConf.to_container(merged))
+   cfg = TrainingConfig.model_validate(
+       omegaconf.OmegaConf.to_container(merged, resolve=True, throw_on_missing=True)
+   )
    ```
 
-1. **Secrets**: Use Environment Variables (`os.getenv`) or `pydantic-settings`, never commit them.
+1. **Secrets**: Use environment variables or `pydantic-settings`; never commit credentials.
 
 ### 5. MLflow Services as I/O Objects
 
 Tracking is a side effect, so it belongs in the I/O layer behind a small, configurable service.
 
-1. **Backend**: Default the tracking and registry URIs to a SQL store — `sqlite:///mlflow.db` locally, a Postgres or HTTP tracking server in production. The file store is deprecated in MLflow 3.15 and does not support the model registry, so it is not a valid default for a package meant to reach production.
+1. **Backend**: Default the tracking and registry URIs to a SQL store — `sqlite:///mlflow.db` locally, a Postgres or HTTP tracking server in production. The legacy file store is in maintenance mode and disabled by default in the supported MLflow version. Use the SQL-backed store from the reference package.
 1. **Configuration, not constants**: Expose `tracking_uri`, `registry_uri`, `experiment_name`, and `autolog` as validated fields, so the same package runs against a laptop database and a shared server without a code change.
 1. **Lifecycle**: Give the service explicit `start()`/`stop()` methods called by the application layer, never at import time.
 
@@ -128,18 +128,23 @@ Make code usable and maintainable.
 
 1. **Docstrings**: Use **Google Style** docstrings for all modules, classes, and functions.
 
-   ```python
-   def calculate_metric(y_true: np.ndarray, y_pred: np.ndarray) -> float:
-       """Calculates the accuracy score.
+```python
+import numpy as np
+from sklearn.metrics import accuracy_score
 
-       Args:
-           y_true: Ground truth labels.
-           y_pred: Predicted labels.
 
-       Returns:
-           The accuracy as a float between 0 and 1.
-       """
-   ```
+def calculate_metric(y_true: np.ndarray, y_pred: np.ndarray) -> float:
+    """Calculates the accuracy score.
+
+    Args:
+        y_true: Ground truth labels.
+        y_pred: Predicted labels.
+
+    Returns:
+        The accuracy as a float between 0 and 1.
+    """
+    return float(accuracy_score(y_true, y_pred))
+```
 
 1. **Type Hints**: Use modern Python typing (`list[str]`, `X | Y`) everywhere; `ty` (0.0.69+) checks them.
 1. **Instructions**: Record the layer boundaries, the naming conventions, and the exact commands in `AGENTS.md` so assistants stop guessing where new code belongs.

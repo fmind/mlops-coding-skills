@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-observability
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Observability
@@ -19,18 +19,20 @@ To implement a "Glass Box" system where every result is **Reproducible**, every 
 
 - **Language**: Python 3.14
 - **Context**: Production monitoring and debugging.
-- **Platform Suggestion**: MLflow 3.15, SHAP, Evidently, ...
+- **Platform Suggestion**: MLflow 3, SHAP, Evidently, ...
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. Guarantee Reproducibility
 
 Consistency is key. For instance:
 
 1. **Randomness**: Set seeds for `random`, `numpy`, `torch`, `tensorflow`.
-1. **Dependencies**: `uv.lock` is the reproducibility mechanism for Python. It records the exact resolved version and hash of every direct and transitive dependency, and `uv sync --frozen` installs exactly that — the same set on a laptop, in CI, and in the image.
+1. **Dependencies**: `uv.lock` is the reproducibility mechanism for Python. It records the exact resolved version and hash of every direct and transitive dependency, and `uv sync --frozen` installs the subset selected by platform markers and dependency groups without checking lock freshness; use `uv lock --check` to check freshness.
 1. **Tools**: `mise.lock` does the same job for the binaries that are not Python packages (`dprint`, `gitleaks`, `trivy`, `actionlint`, `zizmor`, ...), recording version, URL, and checksum per platform. Commit both lockfiles; between them, "works on my machine" stops being a category of bug.
-1. **Builds**: `mise run build` is a plain `uv build` producing a wheel and an sdist. Its reproducibility comes from the locked inputs above, not from a build flag — do not expect `uv build` to pin anything by itself.
+1. **Builds**: `mise run build` is a plain `uv build` producing a wheel and an sdist. Runtime lockfiles do not pin isolated build requirements. Pin or constrain those separately when reproducible distribution builds are required.
 1. **Environment**: Ship the same locked set into a `docker` image (`uv sync --frozen`), so the runtime matches what was tested.
 1. **Code**: Track the git commit hash for every run, and fail the pipeline on a dirty working tree so a run can always be traced back to a commit.
 
@@ -40,7 +42,7 @@ Know the origin of your data. For instance:
 
 1. **Datasets**: Create MLflow Datasets with `mlflow.data.from_pandas`.
 1. **Logging**: Log inputs to MLflow context with `mlflow.log_input`.
-1. **Store**: Keep tracking and registry on a SQL backend (`sqlite:///mlflow.db` locally, Postgres or a tracking server in production). Lineage queries are relational queries; the deprecated file store cannot answer them and does not support the model registry at all.
+1. **Store**: Keep tracking and registry on a SQL backend (`sqlite:///mlflow.db` locally, Postgres or a tracking server in production). The legacy file store is in maintenance mode and lacks current SQL-backed capabilities. Keep the SQL backend used by the reference package.
 1. **Versioning**: Version data files (e.g., `data/v1.csv`) or use DVC.
 1. **Transformations**: Log preprocessing parameters mapping data versions to model versions.
 
@@ -48,9 +50,10 @@ Know the origin of your data. For instance:
 
 Watch for silent failures. For instance:
 
-1. **Validation**: Gate models against quality thresholds with `mlflow.validate_evaluation_results` (MLflow 3).
+1. **Validation**: Gate models against quality thresholds with `mlflow.validate_evaluation_results` (MLflow 3). Evaluate the exact positive integer version returned by training before changing an alias. A string version is interpreted as an alias by the reference package, so convert the returned value with `int(model_version.version)`.
+1. **Metrics**: Convert unsigned counts to floating point at the metric boundary before subtracting predictions from targets. Preserve the domain schemas and test both overpredictions and underpredictions to catch wrapping residuals.
 1. **Drift**: Use `evidently` to compare `reference` (training) vs `current` (production) data.
-   - Detect Data Drift (input distribution changes) and Concept Drift (relationship changes).
+   - Detect feature and prediction distribution shifts. Diagnose concept drift with delayed-label performance and changes in the conditional target relationship; marginal drift alone does not establish it.
 1. **System**: Enable MLflow System Metrics (`log_system_metrics=True`) for CPU/GPU.
 
 ### 4. Alerting
@@ -82,7 +85,7 @@ Optimize resources. For instance:
 The pipeline that produces the model needs the same treatment.
 
 1. **One Gate**: `mise run all` (format -> check -> test -> build) is the signal that a change is releasable. CI runs that exact task, so a green pipeline and a green laptop mean the same thing.
-1. **Static Guarantees**: Ruff 0.16 and `ty` 0.0.69 run inside `mise run check`, alongside the `pip-audit`, `gitleaks`, and `trivy` scans — quality signals you get on every commit, not once a quarter.
+1. **Static Guarantees**: The locked versions of Ruff and `ty` run inside `mise run check`, alongside the `pip-audit`, `gitleaks`, and `trivy` scans — quality signals you get on every commit, not once a quarter.
 1. **Written Down**: `AGENTS.md` records the commands, the definition of done, and the conventions, so an AI assistant debugging a production incident reads the same runbook a human does.
 
 ## Self-Correction Checklist
@@ -94,3 +97,7 @@ The pipeline that produces the model needs the same treatment.
 - [ ] **Explanations**: Are SHAP values generated and stored as artifacts?
 - [ ] **Alerts**: Are thresholds defined for failures?
 - [ ] **Gate**: Does `mise run all` pass, and does CI run that same task?
+
+## Connected candidate workflow
+
+In the reference package, `mise run project` runs `PipelineJob` from `confs/pipeline.yaml`. It validates the full tuning model configuration plus selected parameters before training, saves `selected_params.json`, and links training to tuning with a `tuning_run_id` tag. Evaluation, promotion, inference and explanations use that same immutable model version. Failed evaluation preserves the existing champion; standalone promotion requires an explicit positive version. Do not infer the candidate from the latest registered version or a moving alias.

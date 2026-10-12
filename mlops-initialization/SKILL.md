@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-initialization
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Initialization
@@ -17,13 +17,15 @@ To initialize a robust, production-ready MLOps project structure using the moder
 
 ## Prerequisites
 
-- **Language**: Python 3.14 (latest stable)
+- **Language**: Python 3.14 (the tested reference runtime)
 - **Manager**: `uv` (replaces pip, venv, poetry, pyenv)
 - **Tasks**: `mise` (replaces make/just, and pins the toolchain)
 - **VCS**: Git
 - **IDE**: VS Code (recommended)
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. System & Toolchain Verification
 
@@ -46,7 +48,7 @@ Initialize the project structure using `uv` to ensure modern standards (`pyproje
    - `mkdir <project_name> && cd <project_name>`
 1. **Initialize Project**:
    - Run `uv init`
-   - This creates `pyproject.toml`, `.python-version`, and a basic `hello.py`.
+   - With uv 0.12+, this creates `pyproject.toml`, `.python-version`, `README.md`, and a packaged application under `src/<project_name>/` with a console entrypoint.
 1. **Configure `pyproject.toml`**:
    - Update **metadata**: `name`, `version`, `description`, `authors`, `license`.
    - Set **requires-python**: Ensure it matches the project's target environment (e.g., `>=3.14`).
@@ -65,9 +67,7 @@ Initialize the project structure using `uv` to ensure modern standards (`pyproje
      authors = [{ name = "Your Name", email = "your.email@example.com" }]
      dependencies = [
        "loguru>=0.7.3",
-       "mlflow>=3.15.1",
-       # MLflow 3.15 still declares `pandas<3`, so the pandas 3.x line is unreachable
-       # here; keep the floor permissive and let `uv.lock` pin the tested version.
+       "mlflow>=3.16.1",
        "pandas>=2.3.3",
        "pydantic>=2.13.4",
        "scikit-learn>=1.9.0",
@@ -92,7 +92,7 @@ Initialize the project structure using `uv` to ensure modern standards (`pyproje
      [build-system]
      # Keep the upper bound at least one minor ahead of the pinned `uv`: without it
      # `uv build` warns, and a future breaking `uv_build` silently breaks the sdist.
-     requires = ["uv_build>=0.9,<0.13"]
+     requires = ["uv_build>=0.13,<0.14"]
      build-backend = "uv_build"
      ```
 

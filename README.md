@@ -41,53 +41,22 @@ Skills follow the open `SKILL.md` standard, so most agents discover them from a 
 
 ### Per-tool install paths
 
-| Tool                      | Skills directory                                     | Notes                                                                             |
-| ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------------------- |
-| **Antigravity**           | `.agents/skills/` (workspace)                        | Discovered natively; no extra step once symlinked.                                |
-| **Gemini CLI**            | `.gemini/skills/` (workspace) or `~/.gemini/skills/` | Install via `gemini skill install <git-url> --scope=workspace`.                   |
-| **Claude Code**           | `.claude/skills/` (project) or `~/.claude/skills/`   | Project skills live in `.claude/skills/`; personal skills in `~/.claude/skills/`. |
-| **Claude Code (plugins)** | `<plugin>/skills/`                                   | Skills bundled in a plugin are loaded automatically when the plugin is installed. |
-| **GitHub Copilot**        | any workspace path                                   | Open the relevant `SKILL.md` to load it into context (Agent Mode).                |
+| Tool           | Workspace path                                             | Setup                                                                                    |
+| -------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Antigravity    | `.agents/skills/`                                          | Discovers the linked folders directly.                                                   |
+| Gemini CLI     | `.agents/skills/` or `.gemini/skills/`                     | Discovers the linked folders; remote installation is an alternative.                     |
+| Claude Code    | `.claude/skills/`                                          | Link the shared directory: `mkdir -p .claude && ln -s ../.agents/skills .claude/skills`. |
+| GitHub Copilot | `.agents/skills/`, `.github/skills/`, or `.claude/skills/` | Discovers skills and loads relevant instructions on demand.                              |
 
-### Antigravity
-
-**Antigravity** natively supports the `.agents/skills` standard. Once the symlinks from the [Recommended setup](#recommended-setup-symlinks) are in place, Antigravity detects and uses these skills automatically.
-
-_See the [Antigravity Skills docs](https://antigravity.google/docs/skills) for details._
-
-### Gemini CLI
-
-The **Gemini CLI** manages skills in `.gemini/skills`. Install this repository as a remote skill set to keep it updated and scoped correctly:
+For a Gemini-managed workspace installation instead of symlinks:
 
 ```bash
-gemini skill install https://github.com/MLOps-Courses/mlops-coding-skills --scope=workspace
+gemini skills install https://github.com/MLOps-Courses/mlops-coding-skills --scope workspace
 ```
 
-_See the [Gemini CLI Skills docs](https://geminicli.com/docs/cli/skills/) for details._
+Claude personal skills can live in `~/.claude/skills/`; plugin skills live under the plugin's `skills/`. In Claude Desktop, add the relevant files to Project Knowledge.
 
-### Claude Code
-
-**Claude Code** discovers skills natively — no manual context loading required:
-
-- **Personal skills** (all your projects): place or symlink the folders under `~/.claude/skills/`, e.g. `ln -s ~/mlops-coding-skills/mlops-* ~/.claude/skills/`.
-- **Project skills** (this workspace only): Claude Code reads workspace skills from `.claude/skills/`. If you keep them under the standard `.agents/skills/`, link it once: `mkdir -p .claude && ln -s ../.agents/skills .claude/skills`.
-- **Plugin skills**: any skill bundled inside an installed plugin's `skills/` directory is loaded automatically.
-
-Claude Code then loads a skill on demand whenever its `description` matches your task.
-
-_(For **Claude Desktop**, add the relevant `SKILL.md` files to a Project's Knowledge instead.)_
-
-_See the [Claude Skills documentation](https://code.claude.com/docs/en/skills) for details._
-
-### GitHub Copilot
-
-For **GitHub Copilot** (Agent Mode, e.g. in VS Code), reference the skill files explicitly:
-
-1. Open your project in VS Code.
-1. Open the relevant `SKILL.md` file (e.g. `.agents/skills/mlops-observability/SKILL.md`) to load it into context.
-1. Ask Copilot to follow the instructions in the open skill file.
-
-_See [GitHub Copilot Agent Skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) for the latest features._
+See the current [Antigravity](https://antigravity.google/docs/skills), [Gemini CLI](https://geminicli.com/docs/cli/skills/), [Claude Code](https://code.claude.com/docs/en/skills), and [Copilot](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) documentation for host-specific behavior.
 
 ## 🤝 Contributing
 
@@ -104,3 +73,5 @@ mise run all # format, then check — CI runs this exact task and nothing else
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md) for the repository conventions.
 
 Happy Coding! 🤖✨
+
+Release tags matching `v*` are protected by the [active release-tag ruleset](https://github.com/MLOps-Courses/mlops-coding-skills/rules/24938495): existing tags cannot be updated or deleted, and there are no bypass actors. Create a new version tag for corrections; this rule permits new tag creation and does not publish a release.

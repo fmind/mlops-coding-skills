@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [2.1.0] - 2026-10-12
+
+- Align seven MLOps skills with current tooling, validated schemas and exact-candidate promotion.
+- Update linked course guidance and practical checks; validate the skill publication specification.
+
 ## [2.0.0] - 2026-08-10
 
 ### 🚀 Features

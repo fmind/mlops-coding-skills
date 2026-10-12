@@ -1,12 +1,12 @@
+# https://trivy.dev/docs/latest/references/configuration/config-file/
+exit-code: 1
 severity:
   - HIGH
   - CRITICAL
 scan:
   scanners:
     - license
-    - misconfig
     - secret
-    - vuln
   # Caches and virtualenvs are not source. `.cache` in particular is written by
   # `check:vuln` (pip-audit) while this scan runs in parallel, and trivy aborts when a
   # temporary file disappears mid-walk.

@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-automation
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Automation
@@ -22,6 +22,8 @@ To elevate the codebase to production standards by adding **Task Automation** (`
 - **Context**: Preparing for scale and deployment.
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. Task Automation
 
@@ -84,10 +86,10 @@ Catch issues locally with `lefthook` (replaces `pre-commit`).
 Reproducibility anywhere.
 
 1. **Tool**: `docker`.
-1. **Base Image**: Use `python:3.14-slim` for a minimal footprint; copy a **pinned** `uv` binary into the build stage (`ghcr.io/astral-sh/uv:0.12.3`, never `:latest` — a floating tag is invisible to Dependabot).
+1. **Base Image**: Use `python:3.14-slim` for a minimal footprint; copy a **pinned** `uv` binary into the build stage (`ghcr.io/astral-sh/uv:0.13.0`, never `:latest` — a floating tag is invisible to Dependabot).
 1. **Optimization**:
-   - **Layer Caching**: Copy `uv.lock` + `pyproject.toml` and run `uv sync` _before_ copying `src/`.
-   - **Multi-stage**: Build inputs in one stage, copy only artifacts (the resolved `.venv` or `dist/*.whl`) to the runtime stage.
+   - **Layer Caching**: Install dependencies with `uv sync --frozen --no-install-project --no-dev` before copying `src/`; then install the package with `uv sync --frozen --no-dev --no-editable`.
+   - **Multi-stage**: Copy the non-editable `.venv` to an identical Python runtime image, or install the wheel and its locked runtime dependencies in the final stage.
 1. **Non-root**: Run as a fixed numeric user (`USER 10001:10001`) and copy with `--chown=10001:10001`, so ownership is stable across rebuilds and readable by a host that does not share the image's `/etc/passwd`.
 1. **Lint It**: add `check:dockerfile = "hadolint Dockerfile"` to `check`; the Dockerfile is code and deserves the same gate.
 1. **Registry**: ask for the company artifact registry, or use `ghcr.io` for GitHub.
@@ -120,11 +122,11 @@ Automate verification and release with GitHub Actions.
        timeout-minutes: 20
        steps:
          - name: Checkout repository
-           uses: actions/checkout@v7
+           uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
            with:
              persist-credentials: false # no step pushes back to the repository
          - name: Install mise system
-           uses: jdx/mise-action@v4
+           uses: jdx/mise-action@08ae2a091c038e1e05ec6f5115dc5c69d5a2a6b8 # v5.1.2
            with:
              cache: true # reuse the tools pinned by mise.lock
          - name: Run canonical gate
@@ -133,24 +135,24 @@ Automate verification and release with GitHub Actions.
            run: test -z "$(git status --porcelain)"
    ```
 
-1. **Audit the Workflows**: add `check:actions = ["actionlint", "zizmor --offline .github/workflows/"]` to `check`. `actionlint` catches invalid syntax and shell bugs; `zizmor` catches workflow security issues (script injection, over-broad permissions, credential persistence). Commit `.github/zizmor.yml` to record the pinning policy the project actually follows, so the audit enforces it instead of fighting it.
-1. **Scheduled Security Pass**: push CI only scans recent commits, so add `.github/workflows/security.yml` on a weekly `schedule` (plus `workflow_dispatch`) that checks out with `fetch-depth: 0` and runs the full-history `gitleaks git` and a full `trivy fs .`. Keep `fetch-depth: 0` **out** of `ci.yml`: a full clone on every push costs time and buys nothing the scheduled job does not already cover.
+1. **Audit the Workflows**: add `check:actions = ["actionlint", "zizmor --offline .github/workflows/"]` to `check`. `actionlint` catches invalid syntax and shell bugs; `zizmor` catches workflow security issues (script injection, over-broad permissions, credential persistence). Pin actions to full commit SHAs with readable version comments; the default pinning rule can then enforce the policy without a relaxation file.
+1. **Scheduled Security Pass**: push CI only scans recent commits, so add `.github/workflows/security.yml` on a weekly `schedule` (plus `workflow_dispatch`) that checks out with `fetch-depth: 0` and runs the full-history `gitleaks git --redact=100` and `mise run check:scan` using the committed Trivy policy. Keep `fetch-depth: 0` **out** of `ci.yml`: a full clone on every push costs time and buys nothing the scheduled job does not already cover.
 1. **Release**: `cd.yml` on Release builds the image and publishes docs via the official GitHub Pages Actions (`configure-pages`, `upload-pages-artifact`, `deploy-pages`).
 1. **Dependencies**: add `.github/dependabot.yml` for every ecosystem in use (`uv`, `github-actions`, `docker`), grouping minor and patch updates into one pull request per ecosystem so majors are still reviewed alone.
 
 ### 5. AI/ML Experiments & Registry
 
-Manage the ML lifecycle with **MLflow 3.15**.
+Manage the ML lifecycle with **MLflow 3**.
 
-1. **Platform**: `MLflow` (3.15+).
-1. **Backend**: use a SQL store, locally as well as in production. `sqlite:///mlflow.db` is a real SQLAlchemy backend that supports the model registry and shares its shape with a production Postgres, so promotion is a `MLFLOW_TRACKING_URI` change rather than a rewrite. The **file store is deprecated**: it never supported the registry, and `MLFLOW_ALLOW_FILE_STORE=true` is an escape hatch to migrate off, not a configuration to ship.
+1. **Platform**: `MLflow` (3.16.1+).
+1. **Backend**: use a SQL store, locally as well as in production. `sqlite:///mlflow.db` is a real SQLAlchemy backend that supports the model registry and shares its shape with a production Postgres, so the client API can stay consistent. A shared deployment also needs artifact access, authentication, migration, and backup ownership. The legacy file store is in maintenance mode and disabled by default. `MLFLOW_ALLOW_FILE_STORE=true` is a migration escape hatch; use SQL for current features and a shared production service.
 1. **Local Server**: `mlflow server --backend-store-uri=sqlite:///mlflow.db --artifacts-destination=./mlartifacts`. Add `mlflow.db` to `.gitignore` — it is local state, and committing it puts a binary database in the history.
 1. **Tracking**: Use `mlflow.autolog()`; log metrics, params, and artifacts.
 1. **Models**: Log models with the keyword `name=` (e.g., `mlflow.pyfunc.log_model(name=...)`).
 1. **Validation**: Gate promotion with `mlflow.validate_evaluation_results` against explicit metric thresholds.
 1. **Registry**:
    - Register top models manually or via CI.
-   - **Aliases**: Use `@champion` or `@production` for stable deployment pointers. Never rely on moving versions (e.g., `v1` -> `v2`).
+   - **Aliases**: Use an alias such as `@Champion` for a deployment pointer, matching its case exactly. Evaluate and promote an immutable candidate version first; aliases can move. Never rely on moving versions (e.g., `v1` -> `v2`).
 
 ### 6. Design Patterns
 

@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-prototyping
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Prototyping
@@ -22,6 +22,8 @@ To create standardized, reproducible, and production-ready prototypes in Jupyter
 - **Context**: Executed within a `.ipynb` file or converting to one.
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. Notebook Structure
 
@@ -73,11 +75,14 @@ Prohibit raw data transformations on the full dataset.
 
   ```python
   from sklearn.compose import ColumnTransformer
+  from sklearn.ensemble import RandomForestClassifier
   from sklearn.impute import SimpleImputer
   from sklearn.pipeline import Pipeline
   from sklearn.preprocessing import StandardScaler
 
-  CACHE = "./.cache"  # Define a cache directory
+  # X_train is the already-split training frame; RANDOM_STATE is defined in Configs.
+  numeric_features = X_train.select_dtypes(include="number").columns.tolist()
+  CACHE = "./.cache"
 
   numeric_transformer = Pipeline(
       steps=[
@@ -94,7 +99,7 @@ Prohibit raw data transformations on the full dataset.
   model = Pipeline(
       steps=[
           ("preprocessor", preprocessor),
-          ("classifier", RandomForestClassifier()),
+          ("classifier", RandomForestClassifier(random_state=RANDOM_STATE)),
       ],
       memory=CACHE,
   )
@@ -137,3 +142,7 @@ Facilitate the move from notebook to python package (`src/`).
 - [ ] **Resilience**: Are paths defined relative to the project root?
 - [ ] **Tracking**: Do runs land in a SQL-backed MLflow store rather than the deprecated file store?
 - [ ] **Clarity**: Does the notebook read like a report (Markdown cells explaining the _Why_)?
+
+## Serving feature boundary
+
+Use the same feature-only schema for training and prediction. Remove target-derived columns before persisting processed inputs: in the bike dataset, drop `cnt`, `casual` and `registered` from input features. Keep counts only in raw analysis data and the target dataset. The reference `InputsSchema` and newly logged MLflow signatures require no observed rental counts; historical registered models need retraining to adopt that signature.

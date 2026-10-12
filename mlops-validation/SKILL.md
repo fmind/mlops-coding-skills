@@ -6,7 +6,7 @@ metadata:
   author: Médéric HURIER (Fmind)
   source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-validation
   created: 2026-01-25
-  updated: 2026-08-10
+  updated: 2026-10-12
 ---
 
 # MLOps Validation
@@ -22,6 +22,8 @@ To ensure software quality, reliability, and security through automated validati
 - **Context**: Ensuring code quality before merge/deploy.
 
 ## Instructions
+
+Preserve existing work and repository visibility. Prepare local changes first; commit, push, change remote settings, publish, or deploy only with user authorization.
 
 ### 1. The Task Vocabulary
 
@@ -47,7 +49,7 @@ Catch errors before they run.
 1. **Typing**:
    - **Tool**: `ty` (Astral type checker; pre-1.0, pin a compatible range such as `ty>=0.0.69,<0.1`). The mandated checker — do not use `mypy`.
    - **Rule**: No `Any` (unless absolutely necessary). Fully typed function signatures.
-   - **Pragmatism**: `ty` does not yet model every dynamic library (MLflow, pandera, Pydantic). Silence the specific rule categories they trigger in `[tool.ty.rules]`, with a comment saying why — never disable the checker wholesale.
+   - **Pragmatism**: `ty` does not yet model every dynamic library (MLflow, pandera, Pydantic). Prefer a narrow ignore at the affected boundary, with an explanation and runtime validation. Retain existing project compatibility exceptions only while the library/checker limitation still applies.
    - **DataFrames**: Use `pandera` schemas to validate DataFrame structures/types.
    - **Classes**: Use `pydantic` for data modeling and runtime validation.
 1. **Linting & Formatting**:
@@ -72,10 +74,16 @@ Verify behavior and prevent regressions.
 1. **Pattern**: Use **Given-When-Then** in comments.
 
    ```python
-   def test_pipeline_execution(input_data):
-       # Given: Valid input data
-       # When: The pipeline processes the data
-       # Then: The output content matches expectations
+   from sklearn.impute import SimpleImputer
+
+
+   def test_imputer_uses_training_statistics() -> None:
+       # Given: Training observations with mean 2.
+       imputer = SimpleImputer(strategy="mean").fit([[1.0], [3.0]])
+       # When: A fitted transformer processes a missing held-out value.
+       output = imputer.transform([[float("nan")]])
+       # Then: Training statistics fill the held-out value.
+       assert output.tolist() == [[2.0]]
    ```
 
 1. **MLflow in tests**: Point the tests at a SQLite tracking store, not the deprecated file store — but build it once. Creating a fresh MLflow SQLite database runs the full Alembic migration chain (measured at roughly 7 seconds per database), so a session-scoped fixture should migrate one template database and each test should `shutil.copyfile` it into its own `tmp_path` (roughly 0.07 seconds). Migrating per test turned a 34-second suite into a 339-second one.
@@ -100,7 +108,7 @@ Protect the supply chain and runtime.
 1. **Code Scanning**: Enable Ruff `S` (flake8-bandit) rules to detect unsafe patterns (e.g., `eval`, `yaml.load`) — this replaces standalone `bandit`, and runs inside `check:lint`.
 1. **Dependencies**: `check:vuln` runs `pip-audit --skip-editable` against the resolved environment; **Dependabot** opens the update pull requests on a weekly schedule.
 1. **Secret Scanning**: `check:leaks` runs `gitleaks`. Scan the staged change in the pre-commit hook (`--staged`) and the recent history in CI (`--log-opts="--max-count=100"`); a scheduled workflow rescans the **full** history weekly, because a secret committed and later removed is invisible to a shallow scan forever.
-1. **Filesystem Scanning**: `check:scan` runs `trivy --config trivy.yaml fs .` — one pass covering vulnerabilities, misconfigurations (Dockerfile, IaC), secrets, and license compliance. Two details matter: pass `--config` explicitly, or a `TRIVY_CONFIG` exported in a developer's shell silently overrides the committed policy; and use the `fs` subcommand, because `trivy config` only runs the misconfiguration scanner and quietly skips the rest.
+1. **Filesystem Scanning**: `check:scan` runs `trivy --config trivy.yaml fs .` — one pass covering vulnerabilities, misconfigurations (Dockerfile, IaC), secrets, and license compliance. Three details matter: set `exit-code: 1` in the policy so findings fail the gate; pass `--config` explicitly, or a `TRIVY_CONFIG` exported in a developer's shell silently overrides the committed policy; and use the `fs` subcommand, because `trivy config` only runs the misconfiguration scanner and quietly skips the rest.
 1. **Workflow Scanning**: `check:actions` runs `actionlint` (syntax, shell) and `zizmor` (workflow security: injection, over-broad permissions, credential persistence).
 1. **Secrets**: **NEVER** log secrets. Sanitize outputs.
 
