@@ -4,7 +4,7 @@ description: Add the validation layers that gate a merge — ty typing, Ruff lin
 license: MIT
 metadata:
   author: Médéric HURIER (Fmind)
-  source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-validation
+  source: github.com/fmind/mlops-coding-skills/tree/main/mlops-validation
   created: 2026-01-25
   updated: 2026-10-12
 ---

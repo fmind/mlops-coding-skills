@@ -4,7 +4,7 @@ description: Automate an MLOps project with mise tasks, lefthook hooks, Docker i
 license: MIT
 metadata:
   author: Médéric HURIER (Fmind)
-  source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-automation
+  source: github.com/fmind/mlops-coding-skills/tree/main/mlops-automation
   created: 2026-01-25
   updated: 2026-10-12
 ---

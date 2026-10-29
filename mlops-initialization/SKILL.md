@@ -4,7 +4,7 @@ description: Initialize a production-ready Python MLOps project with uv, git, mi
 license: MIT
 metadata:
   author: Médéric HURIER (Fmind)
-  source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-initialization
+  source: github.com/fmind/mlops-coding-skills/tree/main/mlops-initialization
   created: 2026-01-25
   updated: 2026-10-12
 ---

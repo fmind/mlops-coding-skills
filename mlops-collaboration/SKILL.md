@@ -4,7 +4,7 @@ description: Prepare a project for public collaboration — license, code of con
 license: MIT
 metadata:
   author: Médéric HURIER (Fmind)
-  source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-collaboration
+  source: github.com/fmind/mlops-coding-skills/tree/main/mlops-collaboration
   created: 2026-01-25
   updated: 2026-10-12
 ---

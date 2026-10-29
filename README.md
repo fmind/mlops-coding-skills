@@ -51,7 +51,7 @@ Skills follow the open `SKILL.md` standard, so most agents discover them from a 
 For a Gemini-managed workspace installation instead of symlinks:
 
 ```bash
-gemini skills install https://github.com/MLOps-Courses/mlops-coding-skills --scope workspace
+gemini skills install https://github.com/fmind/mlops-coding-skills --scope workspace
 ```
 
 Claude personal skills can live in `~/.claude/skills/`; plugin skills live under the plugin's `skills/`. In Claude Desktop, add the relevant files to Project Knowledge.
@@ -74,4 +74,4 @@ See [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md) for the re
 
 Happy Coding! 🤖✨
 
-Release tags matching `v*` are protected by the [active release-tag ruleset](https://github.com/MLOps-Courses/mlops-coding-skills/rules/24938495): existing tags cannot be updated or deleted, and there are no bypass actors. Create a new version tag for corrections; this rule permits new tag creation and does not publish a release.
+Release tags matching `v*` are protected by the [active release-tag ruleset](https://github.com/fmind/mlops-coding-skills/rules/24938495): existing tags cannot be updated or deleted, and there are no bypass actors. Create a new version tag for corrections; this rule permits new tag creation and does not publish a release.

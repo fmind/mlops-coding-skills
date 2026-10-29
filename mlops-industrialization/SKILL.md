@@ -4,7 +4,7 @@ description: Convert notebook prototypes into a distributable Python package wit
 license: MIT
 metadata:
   author: Médéric HURIER (Fmind)
-  source: github.com/MLOps-Courses/mlops-coding-skills/tree/main/mlops-industrialization
+  source: github.com/fmind/mlops-coding-skills/tree/main/mlops-industrialization
   created: 2026-01-25
   updated: 2026-10-12
 ---
